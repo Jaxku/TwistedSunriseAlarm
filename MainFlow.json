@@ -1,0 +1,675 @@
+[
+    {
+        "id": "d5fab6be7ce09c34",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "b5b516b104f43cae",
+        "type": "inject",
+        "z": "d5fab6be7ce09c34",
+        "name": "Trigger Sunrise API Manual",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 550,
+        "y": 340,
+        "wires": [
+            [
+                "630dd70897f6224d"
+            ]
+        ]
+    },
+    {
+        "id": "7e916d68bf792a1b",
+        "type": "http request",
+        "z": "d5fab6be7ce09c34",
+        "name": "Sunrise Sunset API (ADJUST FOR LOCATION)",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 620,
+        "y": 460,
+        "wires": [
+            [
+                "65a9e9bc4299c4fb"
+            ]
+        ]
+    },
+    {
+        "id": "20c77ec6a77ce750",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "API Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "sunriseNZ",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 820,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "65a9e9bc4299c4fb",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Extract sunrise",
+        "func": "msg.sunrise = msg.payload.results.sunrise;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 540,
+        "y": 520,
+        "wires": [
+            [
+                "30cbb19d61fb0ee8"
+            ]
+        ]
+    },
+    {
+        "id": "30cbb19d61fb0ee8",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Covert to NZST (ADJUST TO LOCAL TIMEZONE)",
+        "func": "// msg.sunrise contains UTC ISO string from API like \"2024-01-15T18:30:00+00:00\"\n\nif (!msg.sunrise) {\n    node.warn(\"No sunrise data from API!\");\n    return null;\n}\n\n// Parse the UTC sunrise time into a Date object\nmsg.sunriseNZDate = new Date(msg.sunrise);\n\n// Debug output\nconst nzDisplay = msg.sunriseNZDate.toLocaleString(\"en-NZ\", {\n    timeZone: \"Pacific/Auckland\",\n    weekday: 'short',\n    year: 'numeric',\n    month: 'short',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit'\n});\n\nnode.warn(\"Sunrise UTC: \" + msg.sunrise);\nnode.warn(\"Sunrise NZ: \" + nzDisplay);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 600,
+        "wires": [
+            [
+                "c77e65ecd5576a3c"
+            ]
+        ]
+    },
+    {
+        "id": "5f40f02e7899a675",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1200,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "0843ae7de652e644",
+        "type": "inject",
+        "z": "d5fab6be7ce09c34",
+        "name": "Check Sunrise Trigger (Automatic)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "60",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 880,
+        "y": 340,
+        "wires": [
+            [
+                "630dd70897f6224d"
+            ]
+        ]
+    },
+    {
+        "id": "7923e21bd297aa61",
+        "type": "inject",
+        "z": "d5fab6be7ce09c34",
+        "name": "Reset Sunrise Trigger (automatic)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "01 00 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "reset",
+        "payloadType": "str",
+        "x": 1280,
+        "y": 360,
+        "wires": [
+            [
+                "bd13022ed509bc7e"
+            ]
+        ]
+    },
+    {
+        "id": "bd13022ed509bc7e",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Sunrise Triggered Check",
+        "func": "flow.set(\"servoAngle\", 0);\nflow.set(\"servoPhase\", \"PUSH\");\nflow.set(\"sunriseTriggered\", false);\nflow.set(\"sunriseTriggeredDate\", null);\nnode.warn(\"🔄 Sunrise flags reset for new day\");\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1230,
+        "y": 440,
+        "wires": [
+            [
+                "5f40f02e7899a675"
+            ]
+        ]
+    },
+    {
+        "id": "630dd70897f6224d",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Change Date (ADJUST FOR LOCAL TIMEZONE)",
+        "func": "// Get NZ current date/hour PROPERLY (no server tz dependency)\nconst nzDateFormatter = new Intl.DateTimeFormat('sv', {\n    timeZone: 'Pacific/Auckland',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit'\n});\nconst nzDateStr = nzDateFormatter.format(new Date());  // \"2024-10-05\"\n\nconst nzHourFormatter = new Intl.DateTimeFormat('en-GB', {\n    timeZone: 'Pacific/Auckland',\n    hour: '2-digit',\n    hour12: false\n});\nconst nzHourStr = nzHourFormatter.format(new Date());  // \"07\"\nconst nzHour = parseInt(nzHourStr, 10);\n\nnode.warn(`NZ now ~${nzDateStr} ${nzHour}:xx`);\n\nlet targetDateStr = nzDateStr;\nif (nzHour >= 10) {\n    // Compute tomorrow's YYYY-MM-DD (handles month/year rollover)\n    const [year, month, day] = nzDateStr.split('-').map(Number);\n    const nzDate = new Date(Date.UTC(year, month - 1, day));\n    nzDate.setUTCDate(nzDate.getUTCDate() + 1);\n    targetDateStr = `${nzDate.getUTCFullYear()}-${String(nzDate.getUTCMonth() + 1).padStart(2, '0')}-${String(nzDate.getUTCDate()).padStart(2, '0')}`;\n}\n\nmsg.dateForSunriseAPI = targetDateStr;\nnode.warn(`Fetching sunrise for: ${targetDateStr}`);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 400,
+        "wires": [
+            [
+                "7e916d68bf792a1b"
+            ]
+        ]
+    },
+    {
+        "id": "c77e65ecd5576a3c",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Check if Sunrise Hit",
+        "func": "node.warn(\"Sunrise logic hit\");\n\nconst now = new Date();\nconst sunriseTime = new Date(msg.sunriseNZDate);\n\n// Debug\nnode.warn(\"Now: \" + now.toString());\nnode.warn(\"Sunrise target: \" + sunriseTime.toString());\n\n// Validate sunrise time\nif (!msg.sunriseNZDate || isNaN(sunriseTime.getTime())) {\n    node.warn(\"Invalid sunrise time!\");\n    return null;\n}\n\n// ===== CHECK 1: Is sunrise for TODAY? =====\nconst todayNZ = now.toLocaleDateString(\"en-CA\", { timeZone: \"Pacific/Auckland\" });\nconst sunriseDateNZ = sunriseTime.toLocaleDateString(\"en-CA\", { timeZone: \"Pacific/Auckland\" });\n\nnode.warn(\"Today (NZ): \" + todayNZ);\nnode.warn(\"Sunrise date (NZ): \" + sunriseDateNZ);\n\nif (todayNZ !== sunriseDateNZ) {\n    node.warn(\"Sunrise not for today - skipping\");\n    return null;\n}\n\n// ===== CHECK 2: How many minutes since sunrise? =====\nconst diffMs = now.getTime() - sunriseTime.getTime();\nconst diffMinutes = Math.round(diffMs / 60000);\n\nnode.warn(\"Minutes since sunrise: \" + diffMinutes);\n\n// Too early - sunrise hasn't happened yet\nif (diffMinutes < 0) {\n    node.warn(\"Waiting... \" + Math.abs(diffMinutes) + \" minutes until sunrise\");\n    return null;\n}\n\n// CHANGED: Extended window from 30 to 120 minutes (2 hours)\nif (diffMinutes > 120) {\n    node.warn(\"Too late - \" + diffMinutes + \" min after sunrise. Window closed.\");\n    return null;\n}\n\n// ===== CHECK 3: Already triggered today? =====\nconst lastTriggered = flow.get(\"sunriseTriggeredDate\");\n\nnode.warn(\"Last triggered: \" + lastTriggered);\n\nif (lastTriggered === todayNZ) {\n    node.warn(\"Already triggered today\");\n    return null;\n}\n\n// ===== TRIGGER! =====\nflow.set(\"sunriseTriggeredDate\", todayNZ);\n\nmsg.trigger = true;\nmsg.event = \"SUNRISE\";\nmsg.time = now;\n\nnode.warn(\"SUNRISE TRIGGERED! for \" + todayNZ);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 660,
+        "wires": [
+            [
+                "20c77ec6a77ce750",
+                "83f505fb7ed66592",
+                "fe70acd91b850b5c",
+                "1af8866c4b7e28fc"
+            ]
+        ]
+    },
+    {
+        "id": "1af8866c4b7e28fc",
+        "type": "http request",
+        "z": "d5fab6be7ce09c34",
+        "name": "( ADJUST) Trigger Alexa via Voicemonkey",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 360,
+        "y": 820,
+        "wires": [
+            [
+                "5fc33300ec106c0f"
+            ]
+        ]
+    },
+    {
+        "id": "5fc33300ec106c0f",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "API Response",
+        "active": true,
+        "tosidebar": true,
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "a1c2faa49cf7b05c",
+        "type": "http request",
+        "z": "d5fab6be7ce09c34",
+        "name": "(ADJUST) Stop Alexa via VoiceMonkey",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1450,
+        "y": 980,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0179c0c93a9c2f43",
+        "type": "rpi-gpio in",
+        "z": "d5fab6be7ce09c34",
+        "name": "Cancel switch (GPIO24, pull-up)",
+        "pin": "24",
+        "intype": "up",
+        "debounce": "25",
+        "read": false,
+        "bcm": true,
+        "x": 1150,
+        "y": 620,
+        "wires": [
+            [
+                "9e445c9d2beea790"
+            ]
+        ]
+    },
+    {
+        "id": "9e445c9d2beea790",
+        "type": "delay",
+        "z": "d5fab6be7ce09c34",
+        "name": "Debounce 100ms",
+        "pauseType": "delay",
+        "timeout": "0.1",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1150,
+        "y": 680,
+        "wires": [
+            [
+                "81f4a58cecc51835"
+            ]
+        ]
+    },
+    {
+        "id": "81f4a58cecc51835",
+        "type": "switch",
+        "z": "d5fab6be7ce09c34",
+        "name": "Only when switch ON (GPIO LOW = 0)",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1150,
+        "y": 760,
+        "wires": [
+            [
+                "4dcb6389d53078f6"
+            ]
+        ]
+    },
+    {
+        "id": "4dcb6389d53078f6",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "CANCEL: disarm + reset timer",
+        "func": "// Disarm (your servo gate should check this)\nflow.set(\"armed\", false);\n\n// Cancel the trigger node - USE STRING \"reset\"\nmsg.payload = \"reset\";\n\n// Helpful payload for debugging/logging\nmsg.payload = {\n    action: \"cancel\",\n    source: \"gpio_switch\",\n    ts: Date.now()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1190,
+        "y": 840,
+        "wires": [
+            [
+                "a4a8b3c696e8a07c",
+                "a1c2faa49cf7b05c",
+                "cecb4658bf1ca0e9"
+            ]
+        ]
+    },
+    {
+        "id": "a4a8b3c696e8a07c",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "Cancel pressed (debug)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1510,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "83f505fb7ed66592",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "ARM (set flow.armed = true)",
+        "func": "flow.set(\"armed\", true);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 820,
+        "wires": [
+            [
+                "cecb4658bf1ca0e9"
+            ]
+        ]
+    },
+    {
+        "id": "cecb4658bf1ca0e9",
+        "type": "trigger",
+        "z": "d5fab6be7ce09c34",
+        "name": "2 minute countdown (resettable)",
+        "op1": "",
+        "op2": "FIRE",
+        "op1type": "nul",
+        "op2type": "str",
+        "duration": "2",
+        "extend": false,
+        "overrideDelay": false,
+        "units": "min",
+        "reset": "reset",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 750,
+        "y": 940,
+        "wires": [
+            [
+                "10f4e2905f46dfc6"
+            ]
+        ]
+    },
+    {
+        "id": "10f4e2905f46dfc6",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "GATE (only fire if armed)",
+        "func": "if (!flow.get(\"armed\")) return null; // cancelled/disarmed\n\n// optional: one-shot\nflow.set(\"armed\", false);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 1040,
+        "wires": [
+            [
+                "25cae86464d083db",
+                "7c56b0cfa4386c2d"
+            ]
+        ]
+    },
+    {
+        "id": "25cae86464d083db",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "Timer fired + passed gate (debug)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "9f029bc1fbf93d66",
+        "type": "inject",
+        "z": "d5fab6be7ce09c34",
+        "name": "Test Sunrise Trigger",
+        "props": [],
+        "repeat": "",
+        "x": 1110,
+        "y": 960,
+        "wires": [
+            [
+                "a1c2faa49cf7b05c"
+            ]
+        ]
+    },
+    {
+        "id": "7c56b0cfa4386c2d",
+        "type": "mqtt out",
+        "z": "d5fab6be7ce09c34",
+        "name": "Send to Servo",
+        "topic": "servo123abc/trigger",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "hivemq_broker",
+        "x": 1260,
+        "y": 1120,
+        "wires": []
+    },
+    {
+        "id": "eb0d6423524b53bd",
+        "type": "inject",
+        "z": "d5fab6be7ce09c34",
+        "name": "Test Sunrise Trigger",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "1",
+        "payloadType": "str",
+        "x": 950,
+        "y": 1240,
+        "wires": [
+            [
+                "7c56b0cfa4386c2d"
+            ]
+        ]
+    },
+    {
+        "id": "c4f5c2ba0c1ddefe",
+        "type": "e-mail",
+        "z": "d5fab6be7ce09c34",
+        "server": "smtp.gmail.com",
+        "port": "465",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": true,
+        "tls": true,
+        "name": "",
+        "dname": "email (ADJUST FOR OWN EMAIL)",
+        "x": 2120,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "fe70acd91b850b5c",
+        "type": "function",
+        "z": "d5fab6be7ce09c34",
+        "name": "Build Sunrise Email",
+        "func": "msg.topic = \"Sunrise Automation Triggered\";\n\nmsg.payload =\n`Sunrise condition met.\n\nTime (NZ): ${new Date().toLocaleString(\"en-NZ\")}\n\nServo sequence will start now.\n`;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1850,
+        "y": 460,
+        "wires": [
+            [
+                "c4f5c2ba0c1ddefe"
+            ]
+        ]
+    },
+    {
+        "id": "c2d29c30cb5a16c1",
+        "type": "rpi-gpio in",
+        "z": "d5fab6be7ce09c34",
+        "name": "GPIO24 Raw Test",
+        "pin": "24",
+        "intype": "down",
+        "debounce": "25",
+        "read": true,
+        "bcm": true,
+        "x": 1860,
+        "y": 840,
+        "wires": [
+            [
+                "134972ecc81a1590"
+            ]
+        ]
+    },
+    {
+        "id": "134972ecc81a1590",
+        "type": "debug",
+        "z": "d5fab6be7ce09c34",
+        "name": "Raw GPIO Signal",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 2100,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "8a7a1dcf8224eb97",
+        "type": "comment",
+        "z": "d5fab6be7ce09c34",
+        "name": "README",
+        "info": "Please follow the instruction doc, and adjust the nodes labeled.",
+        "x": 480,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "hivemq_broker",
+        "type": "mqtt-broker",
+        "name": "HiveMQ Public",
+        "broker": "broker.hivemq.com",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "d16ea8f7c78f2b45",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-pi-gpio": "2.0.6",
+            "node-red-node-email": "5.0.4"
+        }
+    }
+]
